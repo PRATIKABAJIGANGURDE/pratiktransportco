@@ -28,7 +28,7 @@ export const exportToPDF = (entries: TransportEntry[], startDate: Date, endDate:
   // Title
   doc.setFontSize(20);
   doc.setTextColor(...mainColor);
-  doc.text("Transport Entries Report", 14, 20);
+  doc.text("PRATIK TRANSPORT CO", 14, 20);
 
   // Date Range
   doc.setFontSize(12);
