@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import jsPDF from "jspdf";
 import 'jspdf-autotable';
 
-// Extend jsPDF type
+// Extend jsPDF type to include autoTable
 declare module 'jspdf' {
   interface jsPDF {
     autoTable: (options: any) => void;
@@ -13,9 +13,10 @@ declare module 'jspdf' {
 export const exportToPDF = (entries: TransportEntry[], startDate: Date, endDate: Date) => {
   const doc = new jsPDF();
 
-  const mainColor = [102, 51, 153]; // Purple
+  const mainColor = [41, 128, 185]; // Blue
+  const unpaidColor = [255, 0, 0]; // Red
 
-  // Calculate summary
+  // Calculate statistics
   const totalAmount = entries.reduce((sum, entry) => sum + entry.rentAmount, 0);
   const unpaidAmount = entries
     .filter(entry => entry.balanceStatus !== "PAID")
@@ -32,16 +33,16 @@ export const exportToPDF = (entries: TransportEntry[], startDate: Date, endDate:
   doc.setTextColor(...mainColor);
   doc.text("Transport Entries Report", 14, 20);
 
-  // Date range
+  // Date Range
   doc.setFontSize(12);
-  doc.setTextColor(80);
+  doc.setTextColor(100);
   doc.text(
     `Period: ${format(startDate, "dd MMM yyyy")} - ${format(endDate, "dd MMM yyyy")}`,
     14,
     30
   );
 
-  // Summary
+  // Summary Statistics
   let yPos = 40;
   doc.setFontSize(16);
   doc.setTextColor(...mainColor);
@@ -52,19 +53,30 @@ export const exportToPDF = (entries: TransportEntry[], startDate: Date, endDate:
   yPos += 10;
 
   const summaryStats = [
-    { label: "Total Entries", value: entries.length.toString() },
-    { label: "Total Amount", value: `Rs. ${totalAmount.toLocaleString()}` },
-    { label: "Paid Amount", value: `Rs. ${paidAmount.toLocaleString()}` },
-    { label: "Unpaid Amount", value: `Rs. ${unpaidAmount.toLocaleString()}` },
-    { label: "Average Amount", value: `Rs. ${Math.round(averageAmount).toLocaleString()}` },
-    { label: "Unique Vehicles", value: uniqueVehicles.toString() },
-    { label: "Unique Weights", value: uniqueWeights.toString() },
+    { label: "Total Entries", value: entries.length.toString(), highlight: false },
+    { label: "Total Amount", value: `Rs. ${totalAmount.toLocaleString()}`, highlight: false },
+    { label: "Paid Amount", value: `Rs. ${paidAmount.toLocaleString()}`, highlight: false },
+    { label: "Unpaid Amount", value: `Rs. ${unpaidAmount.toLocaleString()}`, highlight: true },  // Highlighted
+    { label: "Average Amount", value: `Rs. ${Math.round(averageAmount).toLocaleString()}`, highlight: false },
+    { label: "Unique Vehicles", value: uniqueVehicles.toString(), highlight: false },
+    { label: "Unique Weights", value: uniqueWeights.toString(), highlight: false },
   ];
+
+  const summaryBody = summaryStats.map(stat => {
+    if (stat.highlight) {
+      return [
+        { content: stat.label, styles: { textColor: unpaidColor, fontStyle: 'bold' } },
+        { content: stat.value, styles: { textColor: unpaidColor, fontStyle: 'bold' } }
+      ];
+    } else {
+      return [stat.label, stat.value];
+    }
+  });
 
   (doc as any).autoTable({
     startY: yPos,
     head: [["Metric", "Value"]],
-    body: summaryStats.map(stat => [stat.label, stat.value]),
+    body: summaryBody,
     theme: "grid",
     headStyles: {
       fillColor: mainColor,
@@ -157,9 +169,9 @@ export const exportToPDF = (entries: TransportEntry[], startDate: Date, endDate:
       overflow: 'linebreak',
     },
     columnStyles: {
-      5: { halign: 'right', cellWidth: 22 },
-      6: { halign: 'right', cellWidth: 22 },
-      7: { halign: 'right', cellWidth: 22 },
+      5: { halign: 'right', cellWidth: 20 },
+      6: { halign: 'right', cellWidth: 20 },
+      7: { halign: 'right', cellWidth: 20 },
     },
     headStyles: {
       fillColor: mainColor,
@@ -171,6 +183,6 @@ export const exportToPDF = (entries: TransportEntry[], startDate: Date, endDate:
     tableWidth: 'auto',
   });
 
-  // Save the PDF
+  // Save PDF
   doc.save(`transport-report-${format(new Date(), "yyyy-MM-dd")}.pdf`);
 };
