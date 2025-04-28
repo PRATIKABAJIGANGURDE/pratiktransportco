@@ -24,9 +24,6 @@ export const exportToPDF = (entries: TransportEntry[], startDate: Date, endDate:
   const paidAmount = entries
     .filter(entry => entry.balanceStatus === "PAID")
     .reduce((sum, entry) => sum + entry.rentAmount, 0);
-  const averageAmount = entries.length > 0 ? totalAmount / entries.length : 0;
-  const uniqueVehicles = new Set(entries.map(entry => entry.vehicleNumber)).size;
-  const uniqueWeights = new Set(entries.map(entry => entry.weight).filter(Boolean)).size;
 
   // Title
   doc.setFontSize(20);
@@ -53,13 +50,10 @@ export const exportToPDF = (entries: TransportEntry[], startDate: Date, endDate:
   yPos += 10;
 
   const summaryStats = [
-    { label: "Total Entries", value: entries.length.toString(), highlight: false },
+    { label: "Unpaid Amount", value: `Rs. ${unpaidAmount.toLocaleString()}`, highlight: true }, // first unpaid
     { label: "Total Amount", value: `Rs. ${totalAmount.toLocaleString()}`, highlight: false },
     { label: "Paid Amount", value: `Rs. ${paidAmount.toLocaleString()}`, highlight: false },
-    { label: "Unpaid Amount", value: `Rs. ${unpaidAmount.toLocaleString()}`, highlight: true },  // Highlighted
-    { label: "Average Amount", value: `Rs. ${Math.round(averageAmount).toLocaleString()}`, highlight: false },
-    { label: "Unique Vehicles", value: uniqueVehicles.toString(), highlight: false },
-    { label: "Unique Weights", value: uniqueWeights.toString(), highlight: false },
+    { label: "Total Entries", value: entries.length.toString(), highlight: false },
   ];
 
   const summaryBody = summaryStats.map(stat => {
@@ -77,40 +71,6 @@ export const exportToPDF = (entries: TransportEntry[], startDate: Date, endDate:
     startY: yPos,
     head: [["Metric", "Value"]],
     body: summaryBody,
-    theme: "grid",
-    headStyles: {
-      fillColor: mainColor,
-      textColor: 255,
-      fontSize: 10,
-      fontStyle: "bold",
-    },
-    styles: {
-      fontSize: 9,
-      cellPadding: 3,
-    },
-    margin: { left: 14 },
-    tableWidth: 180,
-  });
-
-  // Status Distribution
-  const statusDistribution = entries.reduce((acc, entry) => {
-    acc[entry.balanceStatus] = (acc[entry.balanceStatus] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  yPos = (doc as any).lastAutoTable.finalY + 15;
-  doc.setFontSize(16);
-  doc.setTextColor(...mainColor);
-  doc.text("Status Distribution", 14, yPos);
-
-  (doc as any).autoTable({
-    startY: yPos + 5,
-    head: [["Status", "Count", "Percentage"]],
-    body: Object.entries(statusDistribution).map(([status, count]) => [
-      status,
-      count,
-      `${Math.round((count / entries.length) * 100)}%`,
-    ]),
     theme: "grid",
     headStyles: {
       fillColor: mainColor,
